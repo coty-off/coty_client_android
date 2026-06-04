@@ -45,7 +45,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coty.band.app.domain.Measurement
-import coty.band.app.presentation.common.BodyFigureCanvas
+import coty.band.app.presentation.common.BodyMeasurementDiagram
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,27 +99,31 @@ fun MeasurementResultScreen(
                 }
             }
 
-            // Figure + measurements side by side
-            Row(
+            BodyMeasurementDiagram(
+                chestCm = m.chestCm,
+                waistCm = m.waistCm,
+                hipCm   = m.hipCm,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                // Body figure
-                BodyFigureCanvas(
-                    segments = m.toSegments(),
-                    modifier = Modifier.width(160.dp)
-                )
+                    .height(400.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
 
-                Spacer(Modifier.width(16.dp))
-
-                // Measurements grid
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MeasurementRow("Грудь",    m.chestCm,    uiState.isEditing) { viewModel.updateField(MeasurementField.CHEST, it) }
-                    MeasurementRow("Талия",    m.waistCm,    uiState.isEditing) { viewModel.updateField(MeasurementField.WAIST, it) }
-                    MeasurementRow("Бёдра",    m.hipCm,      uiState.isEditing) { viewModel.updateField(MeasurementField.HIP, it) }
+            if (uiState.isEditing) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Корректировка значений", fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(0.7f))
+                    EditableRow("Грудь", m.chestCm) { viewModel.updateField(MeasurementField.CHEST, it) }
+                    EditableRow("Талия", m.waistCm) { viewModel.updateField(MeasurementField.WAIST, it) }
+                    EditableRow("Бёдра", m.hipCm)   { viewModel.updateField(MeasurementField.HIP, it) }
                 }
+                Spacer(Modifier.height(8.dp))
             }
 
             if (uiState.error != null) {
@@ -128,7 +132,6 @@ fun MeasurementResultScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            // Confirm button
             Button(
                 onClick = viewModel::confirm,
                 enabled = !uiState.isSaving,
@@ -151,10 +154,9 @@ fun MeasurementResultScreen(
 }
 
 @Composable
-private fun MeasurementRow(
+private fun EditableRow(
     label: String,
     value: Float,
-    isEditing: Boolean,
     onValueChange: (Float) -> Unit
 ) {
     Row(
@@ -162,35 +164,24 @@ private fun MeasurementRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(label, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(0.7f),
+        Text(label, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface.copy(0.8f),
             modifier = Modifier.width(70.dp))
 
-        if (isEditing) {
-            var textValue by remember(value) { mutableStateOf("%.2f".format(value)) }
-            OutlinedTextField(
-                value = textValue,
-                onValueChange = { s ->
-                    textValue = s
-                    s.toFloatOrNull()?.let { onValueChange(it) }
-                },
-                suffix = { Text("см") },
-                singleLine = true,
-                modifier = Modifier.width(110.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                textStyle = LocalTextStyle.current.copy(
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
+        var textValue by remember(value) { mutableStateOf("%.2f".format(value)) }
+        OutlinedTextField(
+            value = textValue,
+            onValueChange = { s ->
+                textValue = s
+                s.replace(',', '.').toFloatOrNull()?.let { onValueChange(it) }
+            },
+            suffix = { Text("см") },
+            singleLine = true,
+            modifier = Modifier.width(140.dp),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            textStyle = LocalTextStyle.current.copy(
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
             )
-        } else {
-            Text(
-                "%.2f см".format(value),
-                fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
+        )
     }
 }
-
-@Composable
-private fun LocalTextStyle() = MaterialTheme.typography.bodyMedium

@@ -53,7 +53,7 @@ import com.yandex.authsdk.YandexAuthOptions
 import com.yandex.authsdk.YandexAuthResult
 import com.yandex.authsdk.YandexAuthSdk
 
-// TODO: Замени на ключ сайта из кабинета Яндекс SmartCaptcha
+// TODO: Замениmь на ключ сайта из кабинета Яндекс SmartCaptcha
 private const val SMARTCAPTCHA_SITE_KEY = "YOUR_SMARTCAPTCHA_SITE_KEY"
 
 @Composable
@@ -93,6 +93,16 @@ fun RegisterScreen(
             label = { Text("Логин") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
+        )
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedTextField(
+            value = uiState.email,
+            onValueChange = viewModel::onEmailChange,
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
         )
         Spacer(Modifier.height(12.dp))
 
@@ -178,10 +188,6 @@ fun RegisterScreen(
     }
 }
 
-/**
- * WebView с Яндекс SmartCaptcha.
- * Капча возвращает токен через JavaScript-интерфейс -> onTokenReceived.
- */
 @Composable
 fun YandexSmartCaptchaView(
     siteKey: String,

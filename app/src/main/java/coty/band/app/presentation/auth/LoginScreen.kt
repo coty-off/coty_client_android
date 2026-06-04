@@ -53,7 +53,6 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Yandex OAuth launcher
     val yandexSdk = remember {
         YandexAuthSdk.create(YandexAuthOptions(context))
     }

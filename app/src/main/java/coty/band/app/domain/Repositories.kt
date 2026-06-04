@@ -5,7 +5,7 @@ import java.io.File
 
 interface AuthRepository {
     suspend fun login(username: String, password: String): AppResult<User>
-    suspend fun register(username: String, password: String): AppResult<User>
+    suspend fun register(email: String, username: String, password: String, password1: String): AppResult<User>
     suspend fun loginWithYandex(yandexToken: String): AppResult<User>
     fun isLoggedIn(): Flow<Boolean>
     suspend fun logout()

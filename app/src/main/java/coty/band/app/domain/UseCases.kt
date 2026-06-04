@@ -14,14 +14,17 @@ class LoginUseCase @Inject constructor(private val repo: AuthRepository) {
 
 class RegisterUseCase @Inject constructor(private val repo: AuthRepository) {
     suspend operator fun invoke(
-        username: String,
-        password: String,
-        confirmPassword: String
+        username: String, email: String, password: String, confirmPassword: String
     ): AppResult<User> {
         if (username.isBlank()) return AppResult.Error("Логин не может быть пустым")
+        if (email.isBlank() || !email.contains("@"))
+            return AppResult.Error("Введите корректный email")
         if (password.length < 6) return AppResult.Error("Пароль не менее 6 символов")
         if (password != confirmPassword) return AppResult.Error("Пароли не совпадают")
-        return repo.register(username.trim(), password)
+        return repo.register(
+            username.trim(), email.trim(), password,
+            password1 = password
+        )
     }
 }
 

@@ -50,9 +50,14 @@ class AuthRepositoryImpl @Inject constructor(
             }
         }
 
-    override suspend fun register(username: String, password: String): AppResult<User> =
+    override suspend fun register(
+        email: String,
+        username: String,
+        password: String,
+        password1: String
+    ): AppResult<User> =
         safeCall {
-            val response = authApi.register(RegisterRequest(username, password))
+            val response = authApi.register(RegisterRequest(username, email, password))
             if (response.isSuccessful) login(username, password)
             else AppResult.Error(parseError(response.code()))
         }
@@ -90,9 +95,13 @@ class MeasurementRepositoryImpl @Inject constructor(
                 val statusResp = analyzeApi.getTaskStatus(taskId)
                 if (statusResp.isSuccessful) {
                     val status = statusResp.body()!!
-                    when (status.status) {
-                        "done"  -> return@safeCall AppResult.Success(status.result!!.toDomain())
-                        "error" -> return@safeCall AppResult.Error("Ошибка обработки на сервере")
+                    when (status.status.uppercase()) {
+                        "SUCCESS" -> {
+                            val r = status.result
+                            if (r != null) return@safeCall AppResult.Success(r.toDomain(heightCm))
+                            else return@safeCall AppResult.Error("Сервер вернул пустой результат")
+                        }
+                        "FAILURE" -> return@safeCall AppResult.Error("Ошибка обработки на сервере")
                     }
                 }
             }
@@ -129,10 +138,10 @@ private val fmt = DateTimeFormatter.ISO_DATE_TIME
 private fun File.toMultipart(field: String): MultipartBody.Part =
     MultipartBody.Part.createFormData(field, name, asRequestBody("image/jpeg".toMediaTypeOrNull()))
 
-private fun AnalyzeResult.toDomain() = Measurement(
-    chestCm  = chestCm,
-    waistCm  = waistCm,
-    hipCm    = hipsCm,
+private fun AnalyzeResult.toDomain(heightCm: Float) = Measurement(
+    chestCm  = measurements.chest.circumferenceCm,
+    waistCm  = measurements.waist.circumferenceCm,
+    hipCm    = measurements.hips.circumferenceCm,
     heightCm = heightCm,
     bodyType = bodyType
 )

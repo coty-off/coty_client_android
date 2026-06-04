@@ -22,8 +22,6 @@ object Routes {
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
-
-    // Определяем стартовый экран по наличию токена
     val startDestination = Routes.LOGIN
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -46,21 +44,16 @@ fun NavGraph() {
             )
         }
 
-        composable(Routes.CAMERA) {
-            // Передаём результат обратно через SavedStateHandle
+        composable(Routes.CAMERA) { entry ->
             CameraFlowScreen(
                 onAnalysisComplete = { measurement ->
-                    // Сохраняем измерение в SavedStateHandle предыдущего entry
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("measurement", measurement)
+                    entry.savedStateHandle["measurement"] = measurement
                     navController.navigate(Routes.RESULT)
                 }
             )
         }
 
-        composable(Routes.RESULT) { backStackEntry ->
-            // Получаем измерение переданное из CameraFlowScreen
+        composable(Routes.RESULT) {
             val measurement = navController.previousBackStackEntry
                 ?.savedStateHandle
                 ?.get<Measurement>("measurement")

@@ -28,8 +28,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // TODO: заменить url api
-    private const val BASE_URL = "https://api.coty.example.com/api/"
+    private const val BASE_URL = "https://beggarly-emerging-sharksucker.cloudpub.ru/api/"
 
     @Provides
     @Singleton

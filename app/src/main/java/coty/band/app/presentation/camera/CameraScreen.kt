@@ -2,6 +2,9 @@ package coty.band.app.presentation.camera
 
 import android.Manifest
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -24,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -97,6 +101,12 @@ private fun CameraCapture(step: CameraStep, viewModel: CameraViewModel) {
     val (tempFile, tempUri) = remember(step) { viewModel.createTempImageFile(step) }
     val executor = remember { Executors.newSingleThreadExecutor() }
 
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) viewModel.onPhotoPicked(step, uri)
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             factory = { ctx ->
@@ -143,7 +153,6 @@ private fun CameraCapture(step: CameraStep, viewModel: CameraViewModel) {
             )
         }
 
-        // Shutter button
         FloatingActionButton(
             onClick = {
                 val outputOptions = ImageCapture.OutputFileOptions.Builder(tempFile).build()
@@ -168,6 +177,22 @@ private fun CameraCapture(step: CameraStep, viewModel: CameraViewModel) {
             Icon(
                 Icons.Default.Camera, contentDescription = "Сделать фото",
                 modifier = Modifier.size(36.dp), tint = Color.White)
+        }
+
+        OutlinedButton(
+            onClick = {
+                galleryLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            },
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(start = 24.dp, bottom = 60.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+        ) {
+            Icon(Icons.Default.PhotoLibrary, contentDescription = null, tint = Color.White)
+            Spacer(Modifier.width(8.dp))
+            Text("Галерея", color = Color.White)
         }
     }
 }

@@ -14,6 +14,7 @@ import javax.inject.Inject
 
 data class RegisterUiState(
     val username: String = "",
+    val email: String = "",
     val password: String = "",
     val confirmPassword: String = "",
     val captchaToken: String = "",
@@ -36,6 +37,8 @@ class RegisterViewModel @Inject constructor(
     fun onPasswordChange(v: String)        { _uiState.value = _uiState.value.copy(password = v) }
     fun onConfirmPasswordChange(v: String) { _uiState.value = _uiState.value.copy(confirmPassword = v) }
 
+    fun onEmailChange(v: String) { _uiState.value = _uiState.value.copy(email = v) }
+
     fun onCaptchaToken(token: String) {
         _uiState.value = _uiState.value.copy(captchaToken = token, captchaPassed = true)
     }
@@ -44,7 +47,7 @@ class RegisterViewModel @Inject constructor(
         val s = _uiState.value
         viewModelScope.launch {
             _uiState.value = s.copy(isLoading = true, error = null)
-            when (val result = registerUseCase(s.username, s.password, s.confirmPassword)) {
+            when (val result = registerUseCase(s.username, s.email, s.password, s.confirmPassword)) {
                 is AppResult.Success -> _uiState.value = _uiState.value.copy(isLoading = false, isSuccess = true)
                 is AppResult.Error   -> _uiState.value = _uiState.value.copy(isLoading = false, error = result.message)
                 else -> Unit

@@ -129,7 +129,6 @@ private fun MeasurementCard(m: Measurement) {
             HorizontalDivider()
             Spacer(Modifier.height(8.dp))
 
-            // Two-column
             Row(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     MeasurementItem("Грудь", m.chestCm)
