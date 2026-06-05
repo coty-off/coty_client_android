@@ -9,6 +9,7 @@ import coty.band.app.data.remote.MeasurementApi
 import coty.band.app.data.remote.MeasurementResponse
 import coty.band.app.data.remote.RegisterRequest
 import coty.band.app.data.remote.SaveMeasurementRequest
+import coty.band.app.data.remote.YandexAuthRequest
 import coty.band.app.domain.AppResult
 import coty.band.app.domain.AuthRepository
 import coty.band.app.domain.Measurement
@@ -63,7 +64,23 @@ class AuthRepositoryImpl @Inject constructor(
         }
 
     override suspend fun loginWithYandex(yandexToken: String): AppResult<User> =
-        AppResult.Error("Яндекс авторизация пока не поддерживается сервером")
+        safeCall {
+            val response = authApi.yandexLogin(YandexAuthRequest(yandexToken))
+            if (!response.isSuccessful) {
+                return@safeCall AppResult.Error(parseError(response.code()))
+            }
+            val token = response.body()!!.token
+            // Сохраняем токен сразу, чтобы AuthInterceptor подставил его в запрос getMe()
+            dataStoreManager.saveUser(token, "", "")
+            val me = authApi.getMe().body()
+            val user = User(
+                id = me?.id ?: "",
+                username = me?.username ?: me?.email ?: "",
+                token = token
+            )
+            dataStoreManager.saveUser(token, user.id, user.username)
+            AppResult.Success(user)
+        }
 
     override fun isLoggedIn(): Flow<Boolean> = dataStoreManager.isLoggedIn
     override suspend fun logout() = dataStoreManager.clear()
