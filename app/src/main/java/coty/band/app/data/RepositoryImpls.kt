@@ -34,20 +34,31 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
+    private val measurementApi: MeasurementApi,
     private val dataStoreManager: DataStoreManager,
     private val measurementDao: MeasurementDao
 ) : AuthRepository {
+
+    /** Заменяет локальный кэш измерениями текущего пользователя с сервера. */
+    private suspend fun syncMeasurements() {
+        measurementDao.deleteAll()
+        val resp = measurementApi.getMeasurements()
+        if (resp.isSuccessful) {
+            resp.body()?.forEach { measurementDao.insert(it.toDomain().toEntity()) }
+        }
+    }
 
     override suspend fun login(username: String, password: String): AppResult<User> =
         safeCall {
             val response = authApi.login(username, password)
             if (response.isSuccessful) {
                 val token = response.body()!!.token
+                dataStoreManager.saveUser(token, "", "")
                 val meResp = authApi.getMe()
                 val me = meResp.body()
                 val user = User(id = me?.id?.toString()?: "", username = me?.username ?: username, token = token)
-                measurementDao.deleteAll()
                 dataStoreManager.saveUser(token, user.id, user.username)
+                syncMeasurements()
                 AppResult.Success(user)
             } else {
                 AppResult.Error(parseError(response.code()))
@@ -81,8 +92,8 @@ class AuthRepositoryImpl @Inject constructor(
                 username = me?.username ?: me?.email ?: "",
                 token = token
             )
-            measurementDao.deleteAll()
             dataStoreManager.saveUser(token, user.id, user.username)
+            syncMeasurements()
             AppResult.Success(user)
         }
 
