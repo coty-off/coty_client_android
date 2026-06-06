@@ -2,6 +2,7 @@ package coty.band.app.data
 
 import coty.band.app.data.local.MeasurementDao
 import coty.band.app.data.local.MeasurementEntity
+
 import coty.band.app.data.remote.AnalyzeApi
 import coty.band.app.data.remote.AnalyzeResult
 import coty.band.app.data.remote.AuthApi
@@ -33,7 +34,8 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
-    private val dataStoreManager: DataStoreManager
+    private val dataStoreManager: DataStoreManager,
+    private val measurementDao: MeasurementDao
 ) : AuthRepository {
 
     override suspend fun login(username: String, password: String): AppResult<User> =
@@ -44,6 +46,7 @@ class AuthRepositoryImpl @Inject constructor(
                 val meResp = authApi.getMe()
                 val me = meResp.body()
                 val user = User(id = me?.id?.toString()?: "", username = me?.username ?: username, token = token)
+                measurementDao.deleteAll()
                 dataStoreManager.saveUser(token, user.id, user.username)
                 AppResult.Success(user)
             } else {
@@ -78,12 +81,16 @@ class AuthRepositoryImpl @Inject constructor(
                 username = me?.username ?: me?.email ?: "",
                 token = token
             )
+            measurementDao.deleteAll()
             dataStoreManager.saveUser(token, user.id, user.username)
             AppResult.Success(user)
         }
 
     override fun isLoggedIn(): Flow<Boolean> = dataStoreManager.isLoggedIn
-    override suspend fun logout() = dataStoreManager.clear()
+    override suspend fun logout() {
+        measurementDao.deleteAll()
+        dataStoreManager.clear()
+    }
 }
 
 @Singleton
