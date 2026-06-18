@@ -25,6 +25,9 @@ interface AuthApi {
         @Field("password") password: String
     ): Response<AuthResponse>
 
+    @POST("auth/yandex")
+    suspend fun yandexLogin(@Body request: YandexAuthRequest): Response<AuthResponse>
+
     @GET("auth/me")
     suspend fun getMe(): Response<UserResponse>
 }

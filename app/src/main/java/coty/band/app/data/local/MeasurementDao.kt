@@ -17,4 +17,7 @@ interface MeasurementDao {
 
     @Delete
     suspend fun delete(entity: MeasurementEntity)
+
+    @Query("DELETE FROM measurements")
+    suspend fun deleteAll()
 }

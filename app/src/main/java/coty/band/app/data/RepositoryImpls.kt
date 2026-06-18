@@ -9,6 +9,7 @@ import coty.band.app.data.remote.MeasurementApi
 import coty.band.app.data.remote.MeasurementResponse
 import coty.band.app.data.remote.RegisterRequest
 import coty.band.app.data.remote.SaveMeasurementRequest
+import coty.band.app.data.remote.YandexAuthRequest
 import coty.band.app.domain.AppResult
 import coty.band.app.domain.AuthRepository
 import coty.band.app.domain.Measurement
@@ -32,18 +33,31 @@ import javax.inject.Singleton
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val authApi: AuthApi,
-    private val dataStoreManager: DataStoreManager
+    private val measurementApi: MeasurementApi,
+    private val dataStoreManager: DataStoreManager,
+    private val measurementDao: MeasurementDao
 ) : AuthRepository {
+
+    private suspend fun syncMeasurements() {
+        measurementDao.deleteAll()
+        val resp = measurementApi.getMeasurements()
+        if (resp.isSuccessful) {
+            resp.body()?.forEach { measurementDao.insert(it.toDomain().toEntity()) }
+        }
+    }
 
     override suspend fun login(username: String, password: String): AppResult<User> =
         safeCall {
             val response = authApi.login(username, password)
             if (response.isSuccessful) {
                 val token = response.body()!!.token
+                dataStoreManager.saveUser(token, "", "")
                 val meResp = authApi.getMe()
                 val me = meResp.body()
                 val user = User(id = me?.id?.toString()?: "", username = me?.username ?: username, token = token)
+                measurementDao.deleteAll()
                 dataStoreManager.saveUser(token, user.id, user.username)
+                syncMeasurements()
                 AppResult.Success(user)
             } else {
                 AppResult.Error(parseError(response.code()))
@@ -62,11 +76,30 @@ class AuthRepositoryImpl @Inject constructor(
             else AppResult.Error(parseError(response.code()))
         }
 
-    override suspend fun loginWithYandex(yandexToken: String): AppResult<User> =
-        AppResult.Error("Яндекс авторизация пока не поддерживается сервером")
+    override suspend fun loginWithYandex(yandexToken: String): AppResult<User> = safeCall {
+        val response = authApi.yandexLogin(YandexAuthRequest(yandexToken))
+        if (!response.isSuccessful) {
+            return@safeCall AppResult.Error(parseError(response.code()))
+        }
+        val token = response.body()!!.token
+
+        dataStoreManager.saveUser(token, "", "")
+        val me = authApi.getMe().body()
+        val user = User(
+            id = me?.id ?: "",
+            username = me?.username ?: me?.email ?: "",
+            token = token
+        )
+        dataStoreManager.saveUser(token, user.id, user.username)
+        syncMeasurements()
+        AppResult.Success(user)
+    }
 
     override fun isLoggedIn(): Flow<Boolean> = dataStoreManager.isLoggedIn
-    override suspend fun logout() = dataStoreManager.clear()
+    override suspend fun logout() {
+        measurementDao.deleteAll()
+        dataStoreManager.clear()
+    }
 }
 
 @Singleton
